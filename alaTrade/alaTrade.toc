@@ -1,0 +1,21 @@
+## Interface: 11304
+## Title: alaTrade
+## Title-zhCN: alaTrade
+## Title-zhTW: alaTrade
+## SavedVariablesPerCharacter: 
+## SavedVariables: alaTradeSV
+## Notes: alaTrade
+## Dependencies: 
+## OptionalDependencies: 
+## LoadOnDemand: 0
+## DefaultState: enabled
+## Author: |cff00ff00ALA|r @ |cffff0000163UI|r, Baudzilla(BaudAuction)
+## Author-zhCN: |cff00ff00ALA|r @ |cffff0000网易有爱|r, Baudzilla(BaudAuction)
+## Author-zhTW: |cff00ff00ALA|r @ |cffff0000网易有爱|r, Baudzilla(BaudAuction)
+## Version: 113r.200503
+
+alaTrade.xml
+
+## Title-zhCN: |cff880303[有爱]|r alaTrade 商业增强(拍卖行)
+## X-Vendor: NetEase
+## X-163UI-Version: 20200409195510

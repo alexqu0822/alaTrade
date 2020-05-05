@@ -161,6 +161,7 @@ do	-- LOCALE
 		L["show_disenchant_price"] = "显示分解价格";
 		L["show_disenchant_detail"] = "显示分解详细信息";
 		L["cache_history"] = "保存历史价格\124cff00ff00占用很多内存\124r";
+		L["regular_exp"] = "正则表达式搜索";
 		L["show_DBIcon"] = "显示小地图按钮";
 		L["avoid_stuck_cost"] = "全局扫描速度\124cffff0000警告: 人口较多的服务器请降低此数值\124r";
 		L["data_valid_time"] = "日期着色的基准时间";
@@ -240,6 +241,7 @@ do	-- LOCALE
 		L["show_disenchant_price"] = "Disenchant price ";
 		L["show_disenchant_detail"] = "Disenchant details";
 		L["cache_history"] = "Price history. \124cff00ff00Take up lots of ram\124r";
+		L["regular_exp"] = "Regular Expression";
 		L["show_DBIcon"] = "Icon around the minimap";
 		L["avoid_stuck_cost"] = "Speed of full scan \124cff00ff00Warning: Make it lower if the realm is crowded.\124r";
 		L["data_valid_time"] = "Baseline of the color of timestamp. (Value older than this value is \124cffff0000red\124r)";
@@ -926,7 +928,7 @@ do	--	MAIN
 				else
 					c = {  };
 					cache[id] = c;
-					NS.cache_item_info(id);
+					NS.notify_cache_item_info(id);
 				end
 				c[index_buyoutPriceSingle] = price;
 				c[index_count] = count;
@@ -994,7 +996,10 @@ do	--	MAIN
 									if c[index_level] == nil or c[index_level] < 0 then
 										c[index_level] = level;
 									end
-									c[index_vendorPrice] = c[index_vendorPrice] or select(11, GetItemInfo(id));
+									if c[index_vendorPrice] == nil then
+										NS.notify_cache_item_info(id);
+									end;
+									-- c[index_vendorPrice] = c[index_vendorPrice] or select(11, GetItemInfo(id));
 									if temp[1] then
 										if temp[1] > buyoutPriceSingle then
 											temp[1] = buyoutPriceSingle;
@@ -1014,7 +1019,8 @@ do	--	MAIN
 									c[index_quality] = quality;
 									c[index_texture] = texture;
 									c[index_level] = level;
-									c[index_vendorPrice] = select(11, GetItemInfo(id));
+									NS.notify_cache_item_info(id);
+									-- c[index_vendorPrice] = select(11, GetItemInfo(id));
 									c[index_temp] = { buyoutPriceSingle, count, _cache_time, };
 									cache[id] = c;
 									tinsert(cache3, id);
@@ -1038,7 +1044,10 @@ do	--	MAIN
 									if c[index_level] == nil or c[index_level] < 0 then
 										c[index_level] = level;
 									end
-									c[index_vendorPrice] = c[index_vendorPrice] or select(11, GetItemInfo(id));
+									if c[index_vendorPrice] == nil then
+										NS.notify_cache_item_info(id);
+									end;
+									-- c[index_vendorPrice] = c[index_vendorPrice] or select(11, GetItemInfo(id));
 									temp[2] = (temp[2] or 0) + count;
 								else
 									local c = {  };
@@ -1046,7 +1055,8 @@ do	--	MAIN
 									c[index_quality] = quality;
 									c[index_texture] = texture;
 									c[index_level] = level;
-									c[index_vendorPrice] = select(11, GetItemInfo(id));
+									NS.notify_cache_item_info(id);
+									-- c[index_vendorPrice] = select(11, GetItemInfo(id));
 									c[index_temp] = { nil, count, nil, };
 									cache[id] = c;
 									tinsert(cache3, id);
@@ -2801,6 +2811,9 @@ do	--	MAIN
 				--
 				hook_AuctionFrameAuctions();
 				hook_AuctionFrameBrowse();
+				if IsAddOnLoaded("ElvUI") then
+					NS.ElvUI();
+				end
 			end
 			function NS.hook_Blizzard_AuctionUI()
 				if IsAddOnLoaded("Blizzard_AuctionUI") then
@@ -3466,10 +3479,18 @@ do	--	MAIN
 			wipe(list);
 			local str = ui.searchEdit:GetText();
 			if str and str ~= "" then
-				str = gsub(str, "[%^%$%%%.%+%-%*%?%[%]%(%)]","%%%1");
-				for id, info in pairs(cache) do
-					if (NS.query_ah_price_by_id(id, true) ~= nil or SET.showEmpty) and (strfind(info[index_name], str) or strfind(id, str)) then
-						tinsert(list, id);
+				if SET.regular_exp then
+					for id, info in pairs(cache) do
+						if (NS.query_ah_price_by_id(id, true) ~= nil or SET.showEmpty) and ((info[index_name] and strfind(info[index_name], str)) or strfind(id, str)) then
+							tinsert(list, id);
+						end
+					end
+				else
+					str = gsub(strlower(str), "[%^%$%%%.%+%-%*%?%[%]%(%)]","%%%1");
+					for id, info in pairs(cache) do
+						if (NS.query_ah_price_by_id(id, true) ~= nil or SET.showEmpty) and ((info[index_name] and strfind(strlower(info[index_name]), str)) or strfind(id, str)) then
+							tinsert(list, id);
+						end
 					end
 				end
 			else
@@ -3483,32 +3504,8 @@ do	--	MAIN
 			ui.scroll:SetNumValue(#list);
 			ui.scroll:Update();
 		end
-		function NS.cache_item_info(id)
-			local info = cache[id];
-			if info then
-				local name, link, quality, _, reqLevel, _, _, _, _, texture, vendorPrice = GetItemInfo(id);
-				if name then
-					info[index_name] = name;
-					info[index_quality] = quality;
-					info[index_texture] = texture;
-					info[index_level] = reqLevel;
-					info[index_vendorPrice] = vendorPrice;
-					info[index_link] = link;
-					cache2[name] = id;
-					return true;
-				end
-			end
-			return false;
-		end
-		local function ui_scroll_Update() ui.scroll:Update(); end
-		local function GET_ITEM_INFO_RECEIVED(self, event, arg1, arg2)
-			if arg2 then
-				if NS.cache_item_info(arg1) then
-					if ui:IsShown() then
-						_EventHandler:run_on_next_tick(ui_scroll_Update);
-					end
-				end
-			end
+		function NS.ui_scroll_Update()
+			ui.scroll:Update();
 		end
 		local function sortButton_OnClick(self)
 			local method = self.method;
@@ -3666,8 +3663,6 @@ do	--	MAIN
 
 				NS.add_cache_callback(func_update_ui);
 				C_Timer.NewTicker(1.0, ticker_update_ui);
-				ui:RegisterEvent("GET_ITEM_INFO_RECEIVED");
-				ui:SetScript("OnEvent", GET_ITEM_INFO_RECEIVED);
 				-- ui:SetScript("OnShow", function()
 				-- 	ui.graph:Hide();
 				-- end);
@@ -4037,6 +4032,7 @@ do	--	MAIN
 				{ "show_disenchant_price", },
 				{ "show_disenchant_detail", },
 				{ "cache_history", },
+				-- { "regular_exp", func_update_ui, },
 			};
 			local cbs = {  };
 			local pos_x = 0;
@@ -4073,7 +4069,7 @@ do	--	MAIN
 				pos_y = pos_y + 0.5
 			end
 			local st = {
-				{ "avoid_stuck_cost", 1, 50, 1, },
+				{ "avoid_stuck_cost", 1, 500, 1, },
 				{ "data_valid_time", 900, 86400, 300, L["TIME900"], L["TIME86400"], function(self, value, userInput)
 					if userInput then
 						SET.data_valid_time = value;
@@ -4172,6 +4168,57 @@ do	--	MAIN
 		end);
 	end
 
+	do	--	cache
+		function NS.cache_item_info(id)
+			local info = cache[id];
+			if info then
+				local name, link, quality, _, reqLevel, _, _, _, _, texture, vendorPrice = GetItemInfo(id);
+				if name then
+					info[index_name] = name;
+					info[index_quality] = quality;
+					info[index_texture] = texture;
+					info[index_level] = reqLevel;
+					info[index_vendorPrice] = vendorPrice;
+					info[index_link] = link;
+					cache2[name] = id;
+					return true;
+				end
+			end
+			return false;
+		end
+		local NUM_PER_SECOND = 100;
+		local num = 0;
+		local todo = {  };
+		C_Timer.NewTicker(1.0, function()
+			for i = num + 1, NUM_PER_SECOND do
+				local id = tremove(todo);
+				if id == nil then
+					break;
+				else
+					NS.cache_item_info(id);
+				end
+			end
+			num = 0;
+		end);
+		function NS.notify_cache_item_info(id)
+			if num < NUM_PER_SECOND then
+				NS.cache_item_info(id);
+				num = num + 1;
+			else
+				tinsert(todo, id);
+			end
+		end
+		function NS.GET_ITEM_INFO_RECEIVED(self, event, arg1, arg2)
+			if arg2 then
+				if NS.cache_item_info(arg1) then
+					if ui:IsShown() then
+						_EventHandler:run_on_next_tick(NS.ui_scroll_Update);
+					end
+				end
+			end
+		end
+	end
+
 	function NS.proc_cache()
 		do	-- history data by date
 			for id, info in pairs(cache) do
@@ -4261,8 +4308,35 @@ do	--	MAIN
 				info[index_texture] == nil or
 				info[index_level] < 0 or
 				info[index_vendorPrice] == nil then
-				NS.cache_item_info(id);
+				NS.notify_cache_item_info(id);
 			end
+		end
+	end
+	function NS.ElvUI()
+		if ElvUI and ElvUI[1] then
+			local S = ElvUI[1]:GetModule('Skins');
+			if S then
+				if gui.ResetButton then
+					S:HandleButton(gui.ResetButton);
+				end
+				if gui.ExactQueryCheckButton then
+					S:HandleCheckBox(gui.ExactQueryCheckButton);
+				end
+				if gui.CacheAll then
+					S:HandleButton(gui.CacheAll);
+				end
+				if gui.configButton then
+					S:HandleButton(gui.configButton);
+				end
+				if AuctionFrameAuctions_Time then
+					S:HandleDropDownBox(AuctionFrameAuctions_Time);
+				end
+			end
+		--gui.ResetButton
+		--gui.ExactQueryCheckButton
+		--gui.CacheAll
+		--AuctionFrameAuctions_Time
+		--gui.configButton
 		end
 	end
 
@@ -4287,6 +4361,9 @@ do	--	MAIN
 	function NS.ADDON_LOADED(addon)
 		if conflicted_addons_list[addon] then
 			return NS.Disable(addon);
+		end
+		if addon == 'ElvUI' then
+			NS.ElvUI();
 		end
 	end
 
@@ -4315,7 +4392,7 @@ do	--	INITIALIZE
 	local default_set = {
 		query_online = false,
 		avoid_stuck = true,
-		avoid_stuck_cost = 1,
+		avoid_stuck_cost = 100,
 		show_vendor_price = true,
 		show_vendor_price_multi = true,
 		show_ah_price = true,
@@ -4326,6 +4403,7 @@ do	--	INITIALIZE
 		sort_method = 1,		-- auto
 		sort_method_seq = -1,	-- auto
 		cache_history = true,
+		regular_exp = false,
 		data_valid_time = 3600,	-- in second
 		auto_clean_time = 0,
 		minimapPos = 165,		-- auto
@@ -4365,6 +4443,10 @@ do	--	INITIALIZE
 					alaTradeSV.cache = {  };
 					alaTradeSV.cache[PLAYER_REALM_NAME] = rc;
 				end
+				if alaTradeSV._version < 200505.1 then
+					alaTradeSV.config.avoid_stuck_cost = default_set.avoid_stuck_cost;
+					alaTradeSV.config.regular_exp = default_set.regular_exp;
+				end
 				alaTradeSV.cache = alaTradeSV.cache or {  };
 				alaTradeSV.cache[PLAYER_REALM_NAME] = alaTradeSV.cache[PLAYER_REALM_NAME] or {  };
 			else
@@ -4384,7 +4466,8 @@ do	--	INITIALIZE
 					SET[k] = nil;
 				end
 			end
-			alaTradeSV._version = 200220.0;
+			alaTradeSV._version = 200505.0;
+			SET.regular_exp = false;
 		end
 		_EventHandler:RegEvent("AUCTION_ITEM_LIST_UPDATE");
 		_EventHandler:RegEvent("AUCTION_HOUSE_SHOW");
@@ -4392,6 +4475,7 @@ do	--	INITIALIZE
 		_EventHandler:RegEvent("NEW_AUCTION_UPDATE");
 		_EventHandler:RegEvent("PLAYER_LOGIN");
 		_EventHandler:RegEvent("PLAYER_LOGOUT");
+		_EventHandler:RegEvent("GET_ITEM_INFO_RECEIVED");
 		NS.hook_tooltip();
 		NS.initUI();
 		NS.hook_Blizzard_AuctionUI();

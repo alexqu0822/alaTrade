@@ -12,7 +12,7 @@
 ## Author: |cff00ff00ALA|r @ |cffff0000163UI|r, Baudzilla(BaudAuction)
 ## Author-zhCN: |cff00ff00ALA|r @ |cffff0000网易有爱|r, Baudzilla(BaudAuction)
 ## Author-zhTW: |cff00ff00ALA|r @ |cffff0000网易有爱|r, Baudzilla(BaudAuction)
-## Version: 113r.200503
+## Version: 113r.200505-2
 
 alaTrade.xml
 

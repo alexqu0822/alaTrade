@@ -9,10 +9,9 @@
 local ADDON, NS = ...;
 _G.__ala_meta__ = _G.__ala_meta__ or {  };
 __ala_meta__.merc = NS;
-local _G = _G;
 
+local _G = _G;
 do
-	local _G = _G;
 	if NS.__fenv == nil then
 		NS.__fenv = setmetatable({  },
 				{
@@ -32,16 +31,16 @@ local curPhase = 4;
 ----------------------------------------------------------------------------------------------------upvalue
 	----------------------------------------------------------------------------------------------------LUA
 	local math, table, string, bit = math, table, string, bit;
-	local type = type;
-	local assert, collectgarbage, date, difftime, error, getfenv, getmetatable, loadstring, next, newproxy, pcall, select, setfenv, setmetatable, time, type, unpack, xpcall, rawequal, rawget, rawset =
-			assert, collectgarbage, date, difftime, error, getfenv, getmetatable, loadstring, next, newproxy, pcall, select, setfenv, setmetatable, time, type, unpack, xpcall, rawequal, rawget, rawset;
-	local abs, acos, asin, atan, atan2, ceil, cos, deg, exp, floor, fmod, frexp,ldexp, log, log10, max, min, mod, rad, random, sin, sqrt, tan, fastrandom =
-			abs, acos, asin, atan, atan2, ceil, cos, deg, exp, floor, fmod or math.fmod, frexp,ldexp, log, log10, max, min, mod, rad, random, sin, sqrt, tan, fastrandom;
-	local format, gmatch, gsub, strbyte, strchar, strfind, strlen, strlower, strmatch, strrep, strrev, strsub, strupper, tonumber, tostring =
-			format, gmatch, gsub, strbyte, strchar, strfind, strlen, strlower, strmatch, strrep, strrev, strsub, strupper, tonumber, tostring;
-	local strcmputf8i, strlenutf8, strtrim, strsplit, strjoin, strconcat, tostringall = strcmputf8i, strlenutf8, strtrim, strsplit, strjoin, strconcat, tostringall;
-	local ipairs, pairs, sort, tContains, tinsert, tremove, wipe = ipairs, pairs, sort, tContains, tinsert, tremove, wipe;
-	-- local gcinfo, foreach, foreachi, getn = gcinfo, foreach, foreachi, getn;	-- Deprecated
+	local type, tonumber, tostring = type, tonumber, tostring;
+	local getfenv, setfenv, pcall, xpcall, assert, error, loadstring = getfenv, setfenv, pcall, xpcall, assert, error, loadstring;
+	local abs, ceil, floor, max, min, random, sqrt = abs, ceil, floor, max, min, random, sqrt;
+	local format, gmatch, gsub, strbyte, strchar, strfind, strlen, strlower, strmatch, strrep, strrev, strsub, strupper, strtrim, strsplit, strjoin, strconcat =
+			format, gmatch, gsub, strbyte, strchar, strfind, strlen, strlower, strmatch, strrep, strrev, strsub, strupper, strtrim, strsplit, strjoin, strconcat;
+	local getmetatable, setmetatable, rawget, rawset = getmetatable, setmetatable, rawget, rawset;
+	local next, ipairs, pairs, sort, tContains, tinsert, tremove, wipe, unpack = next, ipairs, pairs, sort, tContains, tinsert, tremove, wipe, unpack;
+	local tConcat = table.concat;
+	local select = select;
+	local date, time = date, time;
 	----------------------------------------------------------------------------------------------------GAME
 	local print = print;
 	local GetServerTime = GetServerTime;
@@ -57,6 +56,7 @@ local curPhase = 4;
 	local SendAddonMessage = SendAddonMessage or C_ChatInfo.SendAddonMessage;
 	local SendAddonMessageLogged = SendAddonMessageLogged or C_ChatInfo.SendAddonMessageLogged;
 	--------------------------------------------------
+	local _ = nil;
 	local UNK_TEXTURE = "Interface\\Icons\\inv_misc_questionmark";
 	local function _log_(...)
 		-- print(date('\124cff00ff00%H:%M:%S\124r'), ...);
@@ -150,6 +150,7 @@ do	-- LOCALE
 		};
 		L["buyout"] = "一口价 ";
 		L["configButton"] = "设置";
+		L["TIP_SEARCH_NAME_ONLY_INFO"] = "只搜索名称，不搜索id";
 		L["close"] = "关闭";
 		L["OK"] = "确定";
 		L["showEmpty"] = "显示无价格记录的物品";
@@ -161,7 +162,8 @@ do	-- LOCALE
 		L["show_disenchant_price"] = "显示分解价格";
 		L["show_disenchant_detail"] = "显示分解详细信息";
 		L["cache_history"] = "保存历史价格\124cff00ff00占用很多内存\124r";
-		L["regular_exp"] = "正则表达式搜索";
+		L["BaudAuctionFrame"] = "改变购买窗口";
+		L["regular_exp"] = "正则表达式搜索\124cffff0000!!!慎用!!!\124r";
 		L["show_DBIcon"] = "显示小地图按钮";
 		L["avoid_stuck_cost"] = "全局扫描速度\124cffff0000警告: 人口较多的服务器请降低此数值\124r";
 		L["data_valid_time"] = "日期着色的基准时间";
@@ -230,6 +232,7 @@ do	-- LOCALE
 		};
 		L["buyout"] = "buyout ";
 		L["configButton"] = "config";
+		L["TIP_SEARCH_NAME_ONLY_INFO"] = "Search name only, otherwise both name and id";
 		L["close"] = "close";
 		L["OK"] = "OK";
 		L["showEmpty"] = "Show items without recorded prices";
@@ -241,7 +244,8 @@ do	-- LOCALE
 		L["show_disenchant_price"] = "Disenchant price ";
 		L["show_disenchant_detail"] = "Disenchant details";
 		L["cache_history"] = "Price history. \124cff00ff00Take up lots of ram\124r";
-		L["regular_exp"] = "Regular Expression";
+		L["BaudAuctionFrame"] = "BaudAuctionFrame";
+		L["regular_exp"] = "Regular Expression\124cffff0000!!!Caution!!!\124r";
 		L["show_DBIcon"] = "Icon around the minimap";
 		L["avoid_stuck_cost"] = "Speed of full scan \124cff00ff00Warning: Make it lower if the realm is crowded.\124r";
 		L["data_valid_time"] = "Baseline of the color of timestamp. (Value older than this value is \124cffff0000red\124r)";
@@ -301,9 +305,10 @@ do	--	InsertLink
 		local handlers_link = {  };
 		function _G.ALA_INSERT_LINK(link, ...)
 			if not link then return; end
-			if #handlers_link > 0 then
-				for _, func in pairs(handlers_link) do
-					if func(link, ...) then
+			local num = #handlers_link;
+			if num > 0 then
+				for index = 1, num do
+					if handlers_link[index](link, ...) then
 						return true;
 					end
 				end
@@ -311,42 +316,43 @@ do	--	InsertLink
 		end
 		function _G.ALA_INSERT_NAME(name, ...)
 			if not name then return; end
-			if #handlers_name > 0 then
-				for _, func in pairs(handlers_name) do
-					if func(name, ...) then
+			local num = #handlers_name;
+			if num > 0 then
+				for index = 1, num do
+					if handlers_name[index](name, ...) then
 						return true;
 					end
 				end
 			end
 		end
 		function _G.ALA_HOOK_ChatEdit_InsertName(func)
-			for _, v in pairs(handlers_name) do
-				if func == v then
+			for index = 1, #handlers_name do
+				if func == handlers_name[index] then
 					return;
 				end
 			end
 			tinsert(handlers_name, func);
 		end
 		function _G.ALA_UNHOOK_ChatEdit_InsertName(func)
-			for i, v in pairs(handlers_name) do
-				if func == v then
+			for index = 1, #handlers_name do
+				if func == handlers_name[index] then
 					tremove(handlers_name, i);
 					return;
 				end
 			end
 		end
 		function _G.ALA_HOOK_ChatEdit_InsertLink(func)
-			for _, v in pairs(handlers_link) do
-				if func == v then
+			for index = 1, #handlers_link do
+				if func == handlers_link[index] then
 					return;
 				end
 			end
 			tinsert(handlers_link, func);
 		end
 		function _G.ALA_UNHOOK_ChatEdit_InsertLink(func)
-			for i, v in pairs(handlers_link) do
-				if func == v then
-					tremove(handlers_link, i);
+			for index = 1, #handlers_link do
+				if func == handlers_link[index] then
+					tremove(handlers_link, index);
 					return;
 				end
 			end
@@ -365,6 +371,22 @@ do	--	InsertLink
 			end
 			return __ChatEdit_InsertLink(link, addon, ...);
 		end
+	end
+end
+
+local function button_info_OnEnter(self)
+	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+	local info_lines = self.info_lines;
+	if info_lines then
+		for index = 1, #info_lines do
+			GameTooltip:AddLine(info_lines[index]);
+		end
+	end
+	GameTooltip:Show();
+end
+local function button_info_OnLeave(self)
+	if GameTooltip:IsOwned(self) then
+		GameTooltip:Hide();
 	end
 end
 
@@ -577,7 +599,7 @@ do	--	MAIN
 		local function ticker_clean()
 			local continue = false;
 			local t0 = GetServerTime() - MIN_ID_FORWARDING_INTERVAL;
-			for id, t in pairs(forward_id_history) do
+			for id, t in next, forward_id_history do
 				if t < t0 then
 					forward_id_history[id] = nil;
 				else
@@ -585,7 +607,7 @@ do	--	MAIN
 				end
 			end
 			t0 = GetServerTime() - MIN_MSG_FORWARDING_INTERVAL;
-			for msg, t in pairs(forward_msg_history) do
+			for msg, t in next, forward_msg_history do
 				if t < t0 then
 					forward_msg_history[msg] = nil;
 				else
@@ -637,7 +659,7 @@ do	--	MAIN
 				forward_msg_history[msg] = t;
 				local control_code = strsub(msg, 1, ADDON_MSG_CONTROL_CODE_LEN);
 				local n, r = strsplit("-", sender);
-				if n and n ~= PLAYER_NAME and (r == nil or r == PLAYER_REALM_NAME) then
+				if n and n ~= PLAYER_NAME and (r == nil or r == "" or r == PLAYER_REALM_NAME) then
 					sender = n;
 					if control_code == ADDON_MSG_QUERY then
 						local text = strsub(msg, ADDON_MSG_CONTROL_CODE_LEN + 1, - 1);
@@ -754,7 +776,7 @@ do	--	MAIN
 		local _cache_temp_table = {  };
 		--
 		function NS.cleanup_cache_temp()
-			for id, c in pairs(cache) do
+			for id, c in next, cache do
 				local temp = c[index_temp];
 				if temp then
 					wipe(temp);
@@ -798,7 +820,8 @@ do	--	MAIN
 				function NS.validated_records()
 					local e = BIG_NUMBER;
 					local l = -1;
-					for _, t in ipairs(Q) do
+					for index = 1, #Q do
+						local t = Q[index];
 						e = min(e, t);
 						l = max(l, t);
 					end
@@ -936,7 +959,7 @@ do	--	MAIN
 			end
 			function NS.apply_cache_temp()
 				local pattern = gsub(_last_query_string, "[%^%$%%%.%+%-%*%?%[%]%(%)]","%%%1");
-				for id, c in pairs(cache) do
+				for id, c in next, cache do
 					local temp = c[index_temp];
 					if temp[3] then
 						if SET.cache_history and c[index_cacheTime] and abs(c[index_cacheTime] - _cache_time) > MINIMUM_CACHE_INTERVAL then
@@ -961,10 +984,11 @@ do	--	MAIN
 						c[index_cacheTime] = _cache_time;
 					end
 				end
+				NS.proc_cache();
 				_log_("apply_cache_temp");
 			end
 			function NS.wipe_cache_temp()
-				for id, c in pairs(cache) do
+				for id, c in next, cache do
 					wipe(c[index_temp]);
 				end
 				_log_("wipe_cache_temp");
@@ -1165,11 +1189,13 @@ do	--	MAIN
 		end
 		do	-- send scan_full
 			function NS.notify_scan_full_done()
-				for _, func in pairs(_callback_after_cache) do
-					func();
+				for index = 1, #_callback_after_cache do
+					_callback_after_cache[index]();
 				end
 				if BaudAuctionFrame then
 					BaudAuctionFrame:RegisterEvent("AUCTION_ITEM_LIST_UPDATE");
+				elseif NS.BaudAuctionFrame then
+					NS.BaudAuctionFrame:_RegisterEvent("AUCTION_ITEM_LIST_UPDATE");
 				end
 				PlaySound(SOUNDKIT.AUCTION_WINDOW_CLOSE);
 			end
@@ -1180,6 +1206,8 @@ do	--	MAIN
 				if select(2, __CanSendAuctionQuery()) then
 					if BaudAuctionFrame then
 						BaudAuctionFrame:UnregisterEvent("AUCTION_ITEM_LIST_UPDATE");
+					elseif NS.BaudAuctionFrame then
+						NS.BaudAuctionFrame:UnregisterEvent("AUCTION_ITEM_LIST_UPDATE");
 					end
 					NS.abandon();
 					_do_cache_temp_table = false;
@@ -1224,8 +1252,8 @@ do	--	MAIN
 					_call_back(_para[1], _cache_temp_table, true);
 					_call_back = nil;
 				end
-				for _, callback_after_func in pairs(_callback_after_cache) do
-					callback_after_func();
+				for index = 1, #_callback_after_cache do
+					_callback_after_cache[index]();
 				end
 				PlaySound(SOUNDKIT.AUCTION_WINDOW_CLOSE);
 			end
@@ -1296,12 +1324,16 @@ do	--	MAIN
 		function NS.AUCTION_HOUSE_SHOW()
 			if BaudAuctionFrame then
 				BaudAuctionFrame:RegisterEvent("AUCTION_ITEM_LIST_UPDATE");
+			elseif NS.BaudAuctionFrame then
+				NS.BaudAuctionFrame:RegisterEvent("AUCTION_ITEM_LIST_UPDATE");
 			end
 		end
 		function NS.AUCTION_HOUSE_CLOSED()
 			wipe(_cache_temp_table);
 			if BaudAuctionFrame then
 				BaudAuctionFrame:RegisterEvent("AUCTION_ITEM_LIST_UPDATE");
+			elseif NS.BaudAuctionFrame then
+				NS.BaudAuctionFrame:_RegisterEvent("AUCTION_ITEM_LIST_UPDATE");
 			end
 		end
 	end
@@ -1390,7 +1422,7 @@ do	--	MAIN
 			[3371] = 4,			-- 空瓶
 			[3372] = 40,		-- 铅瓶
 			[8925] = 500,		-- 水晶瓶
-			[18256] = 30000,	-- 灌魔之瓶
+			[18256] = 6000,	-- 灌魔之瓶
 			--	ENCHANGING
 			[6217] = 124,		-- 铜棒
 			[4470] = 38,		-- 普通木柴
@@ -1419,6 +1451,13 @@ do	--	MAIN
 			[2692] = 40,		-- 辣椒
 			[3713] = 160,		-- 舒心草
 			[2596] = 120,		-- 矮人烈酒
+			--	POISION
+			[2928] = 20,		--	蚀骨灰
+			[5140] = 25,		--	闪光粉
+			[2930] = 50,		--	痛苦精华
+			[8924] = 100,		--	堕落之尘
+			[5173] = 100,		--	丧命草
+			[8923] = 200,		--	苦楚精华
 		};
 		local material_sold_by_vendor_by_name = {  };
 		local function cache_item_info(id)
@@ -1432,7 +1471,7 @@ do	--	MAIN
 		end
 		do
 			local num_material_sold_by_vendor = 0;
-			for id, price in pairs(material_sold_by_vendor) do
+			for id, price in next, material_sold_by_vendor do
 				num_material_sold_by_vendor = num_material_sold_by_vendor + 1;
 			end
 			local frame = CreateFrame("FRAME");
@@ -1451,7 +1490,7 @@ do	--	MAIN
 					end
 				end
 			end);
-			for id, price in pairs(material_sold_by_vendor) do
+			for id, price in next, material_sold_by_vendor do
 				C_Item.RequestLoadItemDataByID(id);
 			end
 		end
@@ -1564,17 +1603,17 @@ do	--	MAIN
 						{ 41, 45, 100, 1, 11177, },
 						{ 46, 50, 100, 1, 11178, },
 						{ 51, 55, 100, 1, 14343, },
-						-- { 56, 71, 99.5, 1, 14344, 0.5, 1, 20725, },			--	P5
-						{ 56, 71, 100, 1, 14344, },
+						{ 56, 71, 99.5, 1, 14344, 0.5, 1, 20725, },			--	P5
+						-- { 56, 71, 100, 1, 14344, },
 						-- { 66, 99, 99.5, 1, 22448, 0.5, 1, 20725, },
 					},
 					[4] = {
 						{ 40, 45, 33.33, 2, 11177, 33.33, 3, 11177, 33.33, 4, 11177, },
 						{ 46, 50, 33.33, 2, 11178, 33.33, 3, 11178, 33.33, 4, 11178, },
 						{ 51, 55, 33.33, 2, 14343, 33.33, 3, 14343, 33.33, 4, 14343, },
-						-- { 56, 60, 100, 1, 20725, },							--	P5
-						{ 56, 94, 33.33, 2, 14344, 33.33, 3, 14344, 33.33, 4, 14344, },
-						-- { 61, 94, 50, 1, 20725, 50, 2, 20725, },				--	P5
+						{ 56, 60, 100, 1, 20725, },							--	P5
+						{ 61, 94, 50, 1, 20725, 50, 2, 20725, },				--	P5
+						-- { 56, 94, 33.33, 2, 14344, 33.33, 3, 14344, 33.33, 4, 14344, },
 						-- { 61, 80, 50, 1, 20725, 50, 2, 20725, },
 						-- { 95, 100, 50, 1, 22450, 50, 2, 22450, },
 					},
@@ -1601,17 +1640,17 @@ do	--	MAIN
 						{ 41, 45, 100, 1, 11177, },
 						{ 46, 50, 100, 1, 11178, },
 						{ 51, 55, 100, 1, 14343, },
-						-- { 56, 65, 99.5, 1, 14344, 0.5, 1, 20725, },			--	P5
-						{ 56, 65, 100, 1, 14344, },
+						{ 56, 65, 99.5, 1, 14344, 0.5, 1, 20725, },			--	P5
+						-- { 56, 65, 100, 1, 14344, },
 						-- { 66, 99, 99.5, 1, 22448, 0.5, 1, 20725, },
 					},
 					[4] = {
 						{ 40, 45, 33.33, 2, 11177, 33.33, 3, 11177, 33.33, 4, 11177, },
 						{ 46, 50, 33.33, 2, 11178, 33.33, 3, 11178, 33.33, 4, 11178, },
 						{ 51, 55, 33.33, 2, 14343, 33.33, 3, 14343, 33.33, 4, 14343, },
-						-- { 56, 60, 100, 1, 20725, },							--	P5
-						{ 56, 94, 33.33, 2, 14344, 33.33, 3, 14344, 33.33, 4, 14344, },
-						-- { 61, 94, 33.33, 1, 20725, 66.66, 2, 20725, },		--	P5
+						{ 56, 60, 100, 1, 20725, },							--	P5
+						{ 61, 94, 33.33, 1, 20725, 66.66, 2, 20725, },		--	P5
+						-- { 56, 94, 33.33, 2, 14344, 33.33, 3, 14344, 33.33, 4, 14344, },
 						-- { 61, 80, 33.3, 1, 20725, 66.6, 2, 20725, },
 						-- { 95, 100, 50, 1, 22450, 50, 2, 22450, },
 					},
@@ -1622,7 +1661,7 @@ do	--	MAIN
 			frame:SetScript("OnEvent", function(self, event, arg1, arg2)
 				if arg2 and ITEM[arg1] ~= nil then
 					cache_item_info(arg1);
-					for _, v in pairs(ITEM) do
+					for _, v in next, ITEM do
 						if ITEM == false then
 							return;
 						end
@@ -1633,11 +1672,11 @@ do	--	MAIN
 					ORIG_DB = nil;
 				end
 			end);
-			for T, VT in pairs(ORIG_DB) do
+			for T, VT in next, ORIG_DB do
 				DB[T] = {  };
-				for R, VR in pairs(VT) do
+				for R, VR in next, VT do
 					DB[T][R] = {  };
-					for _, v in pairs(VR) do
+					for _, v in next, VR do
 						local t = { select(3, unpack(v)) };
 						for i = v[1], v[2] do
 							DB[T][R][i] = t;
@@ -1650,9 +1689,9 @@ do	--	MAIN
 					return;
 				end
 				local finished = true;
-				for T, VT in pairs(ORIG_DB) do
-					for R, VR in pairs(VT) do
-						for _, v in pairs(VR) do
+				for T, VT in next, ORIG_DB do
+					for R, VR in next, VT do
+						for _, v in next, VR do
 							for i = 3, #v, 3 do
 								local id = v[i];
 								if not ITEM[id] then
@@ -2387,7 +2426,7 @@ do	--	MAIN
 				end
 			end
 			local function hook_AuctionFrameBrowse()
-				local ExactQueryCheckButton = CreateFrame("CHECKBUTTON", nil, AuctionFrameBrowse, "UICheckButtonTemplate");
+				local ExactQueryCheckButton = CreateFrame("CHECKBUTTON", "AuctionFrameBrowse_ExactQuery", AuctionFrameBrowse, "UICheckButtonTemplate");
 				ExactQueryCheckButton:SetSize(24, 24);
 				ExactQueryCheckButton:SetHitRectInsets(0, 0, 0, 0);
 				ExactQueryCheckButton:SetPoint("BOTTOM", IsUsableCheckButton, "TOP", 0, 0);
@@ -2420,7 +2459,7 @@ do	--	MAIN
 					BrowseNextPageButton,
 					BrowseNameSort
 				};
-				for _, f in pairs(HideBlz) do
+				for _, f in next, HideBlz do
 					f:Hide();
 					f:SetAlpha(0);
 					f:EnableMouse(false);
@@ -2465,6 +2504,7 @@ do	--	MAIN
 				--
 			end
 			--	SELL
+			local AuctionsTimeDropDown = nil;
 			local AuctionDisplay = nil;
 			local AuctionDisplayScroll = nil;
 			local _sell_item_id = nil;
@@ -2626,6 +2666,7 @@ do	--	MAIN
 			local function TimeDropDown_OnClick(self)
 				AuctionFrameAuctions.duration = self.value;
 				UIDropDownMenu_SetSelectedValue(AuctionFrameAuctions_Time, self.value);
+				UpdateDeposit();
 			end
 			local function TimeDropDown_Initialize()
 				local info = UIDropDownMenu_CreateInfo();
@@ -2674,21 +2715,21 @@ do	--	MAIN
 				AuctionsShortAuctionButton:EnableMouse(false);
 				AuctionsMediumAuctionButton:EnableMouse(false);
 				AuctionsLongAuctionButton:EnableMouse(false);
-				local TimeDropDown = CreateFrame("FRAME", "AuctionFrameAuctions_Time", AuctionFrameAuctions, "UIDropDownMenuTemplate");
-				UIDropDownMenu_SetWidth(TimeDropDown, 80);
-				TimeDropDown:SetScript("OnShow", function(self)
+				AuctionsTimeDropDown = CreateFrame("FRAME", "AuctionFrameAuctions_Time", AuctionFrameAuctions, "UIDropDownMenuTemplate");
+				UIDropDownMenu_SetWidth(AuctionsTimeDropDown, 80);
+				AuctionsTimeDropDown:SetScript("OnShow", function(self)
 					UIDropDownMenu_Initialize(self, TimeDropDown_Initialize);
 				end);
-				UIDropDownMenu_SetSelectedValue(TimeDropDown, AuctionFrameAuctions.duration);
-				TimeDropDown:SetPoint("TOPRIGHT", AuctionFrameAuctions, "TOPLEFT", 217, -320);
-				local TimeDropDown_Text = TimeDropDown:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
-				TimeDropDown_Text:SetText(L["DURATION"]);
-				TimeDropDown_Text:SetPoint("LEFT", TimeDropDown, "RIGHT", -192, 3);
+				UIDropDownMenu_SetSelectedValue(AuctionsTimeDropDown, AuctionFrameAuctions.duration);
+				AuctionsTimeDropDown:SetPoint("TOPRIGHT", AuctionFrameAuctions, "TOPLEFT", 217, -320);
+				local AuctionsTimeDropDown_Text = AuctionsTimeDropDown:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
+				AuctionsTimeDropDown_Text:SetText(L["DURATION"]);
+				AuctionsTimeDropDown_Text:SetPoint("LEFT", AuctionsTimeDropDown, "RIGHT", -192, 3);
 				hooksecurefunc("AuctionFrameTab_OnClick", function(self, button, down, index)
 					local index = self:GetID();
 					if index == 3 then
 						AuctionFrameBotLeft:SetTexture("Interface\\Addons\\alaTrade\\ARTWORK\\UI-AuctionFrame-Auction-BotLeft");
-						UIDropDownMenu_SetSelectedValue(TimeDropDown, AuctionFrameAuctions.duration);
+						UIDropDownMenu_SetSelectedValue(AuctionsTimeDropDown, AuctionFrameAuctions.duration);
 					end
 				end);
 				AuctionsItemButton.stackCount = 0;
@@ -2730,11 +2771,28 @@ do	--	MAIN
 				_selected_index = nil;
 				NS.abandon();
 				if name then
-					AuctionDisplay:Show();
-					AuctionDisplayScroll:SetNumValue(0);
-					_name = name;
-					_sell_item_id = itemID;
-					update_frame:SetScript("OnUpdate", update_func);
+					if C_WowTokenPublic.IsAuctionableWowToken(itemID) then
+						AuctionsTimeDropDown:Hide();
+					else
+						AuctionsStackSizeEntry:Show();
+						AuctionsStackSizeMaxButton:Show();
+						AuctionsStackSizeMaxButton:Enable();
+						AuctionsNumStacksEntry:Show();
+						AuctionsNumStacksMaxButton:Show();
+						AuctionsNumStacksMaxButton:Enable();
+						PriceDropDown:Show();		
+						AuctionsTimeDropDown:Show();
+						AuctionsDurationText:Hide();
+						AuctionsShortAuctionButton:Hide();
+						AuctionsMediumAuctionButton:Hide();
+						AuctionsLongAuctionButton:Hide();
+						--
+						AuctionDisplay:Show();
+						AuctionDisplayScroll:SetNumValue(0);
+						_name = name;
+						_sell_item_id = itemID;
+						update_frame:SetScript("OnUpdate", update_func);
+					end
 				else
 					-- _error_("NEW_AUCTION_UPDATE", "CLEARED");
 					AuctionDisplay:Hide();
@@ -2814,16 +2872,20 @@ do	--	MAIN
 				if IsAddOnLoaded("ElvUI") then
 					NS.ElvUI();
 				end
+				--
+				AuctionFrameAuctions.priceType = PRICE_TYPE_UNIT;
 			end
 			function NS.hook_Blizzard_AuctionUI()
 				if IsAddOnLoaded("Blizzard_AuctionUI") then
 					hook_Blizzard_AuctionUI();
+					NS.CreateBaudAuctionFrame(SET.BaudAuctionFrame);
 				else
 					local frame = CreateFrame("FRAME");
 					frame:RegisterEvent("ADDON_LOADED");
 					frame:SetScript("OnEvent", function(self, event, addon)
 						if addon == "Blizzard_AuctionUI" then
 							hook_Blizzard_AuctionUI();
+							NS.CreateBaudAuctionFrame(SET.BaudAuctionFrame);
 							frame:UnregisterAllEvents();
 							frame:SetScript("OnEvent", nil);
 							frame = nil;
@@ -2880,7 +2942,6 @@ do	--	MAIN
 		local COLOR_PRICE_1 = { 0.0, 1.0, 0.0, 1.0, };
 		local COLOR_PRICE_2 = { 1.0, 0.0, 0.0, 1.0, };
 		local COLOR_LINE = { 0.75, 0.75, 0.25, 1.0, };
-		local _ = nil;
 		local function graph_OnUpdate(self, elasped)
 			local l, r, t, b = self:GetLeft(), self:GetRight(), self:GetTop(), self:GetBottom();
 			local x, y = GetCursorPosition();
@@ -3275,7 +3336,7 @@ do	--	MAIN
 			[SORT_METHOD_PRICE] = 180,
 			[SORT_METHOD_TIME] = 140,
 		};
-		local ui_width = 4 + 4 -2 + 24; for _, w in pairs(button_elements_width) do ui_width = ui_width + w + 2; end
+		local ui_width = 4 + 4 -2 + 24; for _, w in next, button_elements_width do ui_width = ui_width + w + 2; end
 		local function funcToCreateButton(parent, index, buttonHeight)
 			local button = CreateFrame("BUTTON", nil, parent);
 			button:SetHeight(buttonHeight);
@@ -3346,7 +3407,7 @@ do	--	MAIN
 			glow:SetTexture("Interface\\Buttons\\WHITE8X8");
 			-- glow:SetTexCoord(0.25, 0.75, 0.25, 0.75);
 			glow:SetVertexColor(0.25, 0.25, 0.25, 0.75);
-			glow:SetAllPoints(true);
+			glow:SetAllPoints();
 			glow:SetBlendMode("ADD");
 			glow:Hide();
 			button.glow = glow;
@@ -3383,7 +3444,7 @@ do	--	MAIN
 				if info then
 					button.itemID:SetText(id);
 					button.icon:SetTexture(info[index_texture]);
-					button.name:SetText((info[index_name] == nil or info[index_name] == "") and ("ITEM" .. id .. data_index) or info[index_name]);
+					button.name:SetText((info[index_name] == nil or info[index_name] == "") and ("ITEM" .. id) or info[index_name]);
 					if info[index_level] >= 0 then
 						button.level:SetText(info[index_level]);
 					else
@@ -3471,6 +3532,37 @@ do	--	MAIN
 				end
 			end
 		end
+		local function process_search(list, cache, str)
+			if SET.showEmpty then
+				if SET.searchNameOnly then
+					for id, info in next, cache do
+						if (info[index_name] and strfind(info[index_name], str)) then
+							tinsert(list, id);
+						end
+					end
+				else
+					for id, info in next, cache do
+						if (info[index_name] and strfind(info[index_name], str)) or strfind(id, str) then
+							tinsert(list, id);
+						end
+					end
+				end
+			else
+				if SET.searchNameOnly then
+					for id, info in next, cache do
+						if (NS.query_ah_price_by_id(id, true) ~= nil) and ((info[index_name] and strfind(info[index_name], str))) then
+							tinsert(list, id);
+						end
+					end
+				else
+					for id, info in next, cache do
+						if (NS.query_ah_price_by_id(id, true) ~= nil) and ((info[index_name] and strfind(info[index_name], str)) or strfind(id, str)) then
+							tinsert(list, id);
+						end
+					end
+				end
+			end
+		end
 		local function func_update_ui()
 			if not ui:IsShown() then
 				return;
@@ -3480,25 +3572,24 @@ do	--	MAIN
 			local str = ui.searchEdit:GetText();
 			if str and str ~= "" then
 				if SET.regular_exp then
-					for id, info in pairs(cache) do
-						if (NS.query_ah_price_by_id(id, true) ~= nil or SET.showEmpty) and ((info[index_name] and strfind(info[index_name], str)) or strfind(id, str)) then
-							tinsert(list, id);
-						end
+					local result, ret = pcall(process_search, list, cache, str);
+					if result then
+						ui:SearchEditValid();
+					else
+						ui:SearchEditInvalid();
 					end
 				else
 					str = gsub(strlower(str), "[%^%$%%%.%+%-%*%?%[%]%(%)]","%%%1");
-					for id, info in pairs(cache) do
-						if (NS.query_ah_price_by_id(id, true) ~= nil or SET.showEmpty) and ((info[index_name] and strfind(strlower(info[index_name]), str)) or strfind(id, str)) then
-							tinsert(list, id);
-						end
-					end
+					process_search(list, cache, str);
+					ui:SearchEditValid();
 				end
 			else
-				for id, info in pairs(cache) do
+				for id, info in next, cache do
 					if NS.query_ah_price_by_id(id, true) ~= nil or SET.showEmpty then
 						tinsert(list, id);
 					end
 				end
+				ui:SearchEditValid();
 			end
 			func_sort_list(list, SET.sort_method, SET.sort_method_seq);
 			ui.scroll:SetNumValue(#list);
@@ -3514,7 +3605,7 @@ do	--	MAIN
 			else
 				SET.sort_method = method;
 			end
-			for _, button in pairs(self.sortButtons) do
+			for _, button in next, self.sortButtons do
 				if button == self then
 					button.texture:SetColorTexture(0.75, 0.75, 0.25, 0.5);
 					button.seq:Show();
@@ -3657,7 +3748,7 @@ do	--	MAIN
 				local label = ui:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 				label:SetText(L["showEmpty"]);
 				label:SetPoint("RIGHT", showEmpty, "LEFT", - 4, 0);
-				showEmpty:SetPoint("BOTTOMRIGHT", ui, "BOTTOMRIGHT", - 4, - 2);
+				showEmpty:SetPoint("CENTER", ui, "BOTTOMRIGHT", - 10, 13);
 				ui.showEmpty = showEmpty;
 				showEmpty:SetChecked(SET.showEmpty);
 
@@ -3857,6 +3948,22 @@ do	--	MAIN
 				searchEditOK:SetFontString(searchEditOKText);
 				searchEditOK:SetPushedTextOffset(0, - 1);
 
+				local searchEditNameOnly = CreateFrame("CHECKBUTTON", nil, ui, "OptionsBaseCheckButtonTemplate");
+				searchEditNameOnly:SetSize(24, 24);
+				searchEditNameOnly:SetHitRectInsets(0, 0, 0, 0);
+				searchEditNameOnly:Show();
+				searchEditNameOnly:SetChecked(false);
+				searchEditNameOnly:SetPoint("RIGHT", searchEditOK, "LEFT", - 4, 0)
+				searchEditNameOnly.info_lines = { L["TIP_SEARCH_NAME_ONLY_INFO"], };
+				searchEditNameOnly:SetScript("OnEnter", button_info_OnEnter);
+				searchEditNameOnly:SetScript("OnLeave", button_info_OnLeave);
+				searchEditNameOnly:SetScript("OnClick", function(self)
+					SET.searchNameOnly = self:GetChecked();
+					_EventHandler:run_on_next_tick(func_update_ui);
+				end);
+				ui.searchEditNameOnly = searchEditNameOnly;
+				searchEditNameOnly:SetChecked(SET.searchNameOnly);
+
 				local searchEdit = CreateFrame("EDITBOX", nil, ui);
 				searchEdit:SetHeight(18);
 				searchEdit:SetFont(ui_style.frameFont, ui_style.frameFontSize, ui_style.frameFontOutline);
@@ -3865,7 +3972,7 @@ do	--	MAIN
 				searchEdit:Show();
 				searchEdit:EnableMouse(true);
 				searchEdit:SetPoint("TOPLEFT", ui, "TOPLEFT", 4, - 22);
-				searchEdit:SetPoint("RIGHT", searchEditOK, "LEFT", - 4, 0);
+				searchEdit:SetPoint("RIGHT", searchEditNameOnly, "LEFT", - 4, 0);
 				local searchEditTexture = searchEdit:CreateTexture(nil, "ARTWORK");
 				searchEditTexture:SetPoint("TOPLEFT");
 				searchEditTexture:SetPoint("BOTTOMRIGHT");
@@ -3891,6 +3998,12 @@ do	--	MAIN
 				searchEditOK:SetScript("OnEnable", function(self) searchEditOKText:SetTextColor(1.0, 1.0, 1.0, 1.0); end);
 				searchEditOK:SetScript("OnDisable", function(self) searchEditOKText:SetTextColor(1.0, 1.0, 1.0, 0.5); end);
 
+				function ui:SearchEditValid()
+					searchEditTexture:SetVertexColor(0.25, 0.25, 0.25);
+				end
+				function ui:SearchEditInvalid()
+					searchEditTexture:SetVertexColor(0.25, 0.0, 0.0);
+				end
 				searchEdit:SetScript("OnEnterPressed", function(self) self:ClearFocus(); end);
 				searchEdit:SetScript("OnEscapePressed", function(self) self:ClearFocus(); end);
 				searchEdit:SetScript("OnTextChanged", function(self, isUserInput)
@@ -4006,13 +4119,15 @@ do	--	MAIN
 			end);
 			local ct = {
 				-- { "avoid_stuck", },
-				{ "query_online", function(on)
+				{ "query_online",
+					function(on)
 						if not on then
 							NS.FlushQueryQueue();
 						end
 					end,
 				},
-				{ "show_DBIcon", function(on)
+				{ "show_DBIcon",
+					function(on)
 						if LibStub then
 							local icon = LibStub("LibDBIcon-1.0", true);
 							if icon then
@@ -4032,12 +4147,23 @@ do	--	MAIN
 				{ "show_disenchant_price", },
 				{ "show_disenchant_detail", },
 				{ "cache_history", },
-				-- { "regular_exp", func_update_ui, },
+				{ "BaudAuctionFrame",
+					function(on)
+						if NS.BaudAuctionFrame then
+							if on then
+								NS.EnableBaudAuctionFrame(NS.BaudAuctionFrame);
+							else
+								NS.DisableBaudAuctionFrame(NS.BaudAuctionFrame);
+							end
+						end
+					end,
+				},
+				{ "regular_exp", func_update_ui, },
 			};
 			local cbs = {  };
 			local pos_x = 0;
 			local pos_y = 0;
-			for i, val in pairs(ct) do
+			for i, val in next, ct do
 				local key = val[1];
 				local func = val[2];
 				local cb = CreateFrame("CHECKBUTTON", nil, configFrame, "OptionsBaseCheckButtonTemplate");
@@ -4089,7 +4215,7 @@ do	--	MAIN
 				end},
 			};
 			local sls = {  };
-			for i, val in pairs(st) do
+			for i, val in next, st do
 				local label = configFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 				label:SetText(L[val[1]]);
 				label:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 4, -12 - pos_y * 36);
@@ -4120,17 +4246,20 @@ do	--	MAIN
 				pos_y = pos_y + 1.5;
 			end
 
+			configFrame:SetHeight(12 + pos_y * 36);
+
 			configFrame:SetScript("OnShow", function()
-				for i, val in pairs(ct) do
+				for i, val in next, ct do
 					cbs[i]:SetChecked(SET[val[1]]);
 				end
-				for i, val in pairs(st) do
+				for i, val in next, st do
 					sls[i]:SetValue(SET[val[1]]);
 				end
 				-- data_valid_time_Slider:SetValue(SET.data_valid_time);
 				-- auto_clean_time_Slider:SetValue(SET.auto_clean_time);
 			end);
 
+			gui.configFrame = configFrame;
 		end
 		function NS.toggle_ui()
 			if ui:IsShown() then
@@ -4173,7 +4302,7 @@ do	--	MAIN
 			local info = cache[id];
 			if info then
 				local name, link, quality, _, reqLevel, _, _, _, _, texture, vendorPrice = GetItemInfo(id);
-				if name then
+				if name and name ~= "" then
 					info[index_name] = name;
 					info[index_quality] = quality;
 					info[index_texture] = texture;
@@ -4188,24 +4317,32 @@ do	--	MAIN
 		end
 		local NUM_PER_SECOND = 100;
 		local num = 0;
-		local todo = {  };
+		local todo1, todo2 = {  }, {  };
 		C_Timer.NewTicker(1.0, function()
 			for i = num + 1, NUM_PER_SECOND do
-				local id = tremove(todo);
+				local id = tremove(todo1);
 				if id == nil then
-					break;
+					if #todo2 == 0 then
+						break;
+					else
+						todo1, todo2 = todo2, todo1;
+					end
 				else
-					NS.cache_item_info(id);
+					if not NS.cache_item_info(id) then
+						tinsert(todo2, 1, id);
+					end
 				end
 			end
 			num = 0;
 		end);
 		function NS.notify_cache_item_info(id)
 			if num < NUM_PER_SECOND then
-				NS.cache_item_info(id);
+				if not NS.cache_item_info(id) then
+					tinsert(todo2, id);
+				end
 				num = num + 1;
 			else
-				tinsert(todo, id);
+				tinsert(todo1, id);
 			end
 		end
 		function NS.GET_ITEM_INFO_RECEIVED(self, event, arg1, arg2)
@@ -4221,7 +4358,7 @@ do	--	MAIN
 
 	function NS.proc_cache()
 		do	-- history data by date
-			for id, info in pairs(cache) do
+			for id, info in next, cache do
 				local H = info[index_history];
 				if H then
 					local pos = 1;
@@ -4258,7 +4395,7 @@ do	--	MAIN
 		do	-- validate & modify db
 			if SET.auto_clean_time > 0 then
 				local expired = GetServerTime() - SET.auto_clean_time;
-				for id, info in pairs(cache) do
+				for id, info in next, cache do
 					local H = info[index_history];
 					if H then
 						if info[index_buyoutPriceSingle] then
@@ -4281,7 +4418,7 @@ do	--	MAIN
 					end
 				end
 			end
-			for id, info in pairs(cache) do
+			for id, info in next, cache do
 				local H = info[index_history];
 				if H then
 					for i = #H, 1, -1 do
@@ -4292,16 +4429,16 @@ do	--	MAIN
 				end
 			end
 		end
-		for id, info in pairs(cache) do
-				if type(info[index_name]) ~= 'string' or info[index_name] == "" then
-					info[index_name] = nil;
-				end
-				if type(info[index_link]) ~= 'string' or info[index_link] == "" then
-					info[index_link] = nil;
-				end
-				if (type(info[index_link]) ~= 'string' and type(info[index_link]) ~= 'number') or info[index_texture] == "" or info[index_texture] == 0 then
-					info[index_texture] = nil;
-				end
+		for id, info in next, cache do
+			if type(info[index_name]) ~= 'string' or info[index_name] == "" then
+				info[index_name] = nil;
+			end
+			if type(info[index_link]) ~= 'string' or info[index_link] == "" then
+				info[index_link] = nil;
+			end
+			if (type(info[index_link]) ~= 'string' and type(info[index_link]) ~= 'number') or info[index_texture] == "" or info[index_texture] == 0 then
+				info[index_texture] = nil;
+			end
 			if info[index_name] == nil or
 				info[index_link] == nil or
 				info[index_quality] == nil or
@@ -4350,7 +4487,7 @@ do	--	MAIN
 		["BaudAuction"] = 1,
 	};
 
-	for addon, _ in pairs(conflicted_addons_list) do
+	for addon, _ in next, conflicted_addons_list do
 		-- if GetAddOnEnableState(PLAYER_NAME, addon) ~= 0 then
 			DisableAddOn(addon);
 		-- end
@@ -4409,13 +4546,15 @@ do	--	INITIALIZE
 		minimapPos = 165,		-- auto
 		show_DBIcon = true,	--
 		showEmpty = false,
+		BaudAuctionFrame = true,
+		searchNameOnly = true,
 	};
 	function NS.PLAYER_ENTERING_WORLD()
 		_EventHandler:UnregisterEvent("PLAYER_ENTERING_WORLD");
 		do	-- initialze saved_var
 			if alaTradeSV then
 				if alaTradeSV._version < 200214.0 then
-					for id, info in pairs(alaTradeSV.cache) do
+					for id, info in next, alaTradeSV.cache do
 						info[11] = info[0];
 						info[0] = nil;
 						info[10] = info.temp or {  };
@@ -4443,7 +4582,7 @@ do	--	INITIALIZE
 					alaTradeSV.cache = {  };
 					alaTradeSV.cache[PLAYER_REALM_NAME] = rc;
 				end
-				if alaTradeSV._version < 200505.1 then
+				if alaTradeSV._version < 200525.0 then
 					alaTradeSV.config.avoid_stuck_cost = default_set.avoid_stuck_cost;
 					alaTradeSV.config.regular_exp = default_set.regular_exp;
 				end
@@ -4456,18 +4595,17 @@ do	--	INITIALIZE
 			cache2 = alaTradeSV.cache2;
 			cache3 = alaTradeSV.cache3;
 			SET = alaTradeSV.config;
-			for k, v in pairs(default_set) do
+			for k, v in next, default_set do
 				if SET[k] == nil then
 					SET[k] = v;
 				end
 			end
-			for k, _ in pairs(SET) do
+			for k, _ in next, SET do
 				if default_set[k] == nil then
 					SET[k] = nil;
 				end
 			end
-			alaTradeSV._version = 200505.0;
-			SET.regular_exp = false;
+			alaTradeSV._version = 200525.0;
 		end
 		_EventHandler:RegEvent("AUCTION_ITEM_LIST_UPDATE");
 		_EventHandler:RegEvent("AUCTION_HOUSE_SHOW");
@@ -4481,7 +4619,8 @@ do	--	INITIALIZE
 		NS.hook_Blizzard_AuctionUI();
 		NS.InitAddonMessage();
 		-- NS.init_ADDON_MESSAGE();
-		NS.proc_cache();
+		C_Timer.After(2.0, NS.proc_cache);
+		if __ala_meta__.initpublic then __ala_meta__.initpublic(); end
 	end
 
 	_EventHandler:RegEvent("PLAYER_ENTERING_WORLD");

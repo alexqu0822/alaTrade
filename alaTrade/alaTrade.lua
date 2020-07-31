@@ -438,7 +438,7 @@ do	-- InsertLink
 		function _G.ALA_INSERT_LINK(link, ...)
 			if not link then return; end
 			if #handlers_link > 0 then
-				for _, func in pairs(handlers_link) do
+				for _, func in next, handlers_link do
 					if func(link, ...) then
 						return true;
 					end
@@ -448,7 +448,7 @@ do	-- InsertLink
 		function _G.ALA_INSERT_NAME(name, ...)
 			if not name then return; end
 			if #handlers_name > 0 then
-				for _, func in pairs(handlers_name) do
+				for _, func in next, handlers_name do
 					if func(name, ...) then
 						return true;
 					end
@@ -456,7 +456,7 @@ do	-- InsertLink
 			end
 		end
 		function _G.ALA_HOOK_ChatEdit_InsertName(func)
-			for _, v in pairs(handlers_name) do
+			for _, v in next, handlers_name do
 				if func == v then
 					return;
 				end
@@ -464,7 +464,7 @@ do	-- InsertLink
 			tinsert(handlers_name, func);
 		end
 		function _G.ALA_UNHOOK_ChatEdit_InsertName(func)
-			for i, v in pairs(handlers_name) do
+			for i, v in next, handlers_name do
 				if func == v then
 					tremove(handlers_name, i);
 					return;
@@ -472,7 +472,7 @@ do	-- InsertLink
 			end
 		end
 		function _G.ALA_HOOK_ChatEdit_InsertLink(func)
-			for _, v in pairs(handlers_link) do
+			for _, v in next, handlers_link do
 				if func == v then
 					return;
 				end
@@ -480,7 +480,7 @@ do	-- InsertLink
 			tinsert(handlers_link, func);
 		end
 		function _G.ALA_UNHOOK_ChatEdit_InsertLink(func)
-			for i, v in pairs(handlers_link) do
+			for i, v in next, handlers_link do
 				if func == v then
 					tremove(handlers_link, i);
 					return;
@@ -519,7 +519,7 @@ do	-- query auction
 		return _processing_scan__GLOBAL;
 	end
 	local function cleanup_cache_temp()
-		for id, info in pairs(cache) do
+		for id, info in next, cache do
 			local temp = info.temp;
 			if temp then
 				wipe(temp);
@@ -751,7 +751,7 @@ do	-- query auction
 			end
 		end
 		function merc.finish_cache()
-			for id, c in pairs(cache) do
+			for id, c in next, cache do
 				local temp = c.temp;
 				if temp then
 					if config.cache_history and c[2] then
@@ -833,7 +833,7 @@ do	-- query auction
 			end
 		end
 		local function history_db_scan_full()
-			for id, v in pairs(cache) do
+			for id, v in next, cache do
 				if not v[7] then
 					v[2] = nil;
 					v[3] = 0;
@@ -853,7 +853,7 @@ do	-- query auction
 				history_db_scan_full();
 				merc.halt_scan_full(true);
 				_prev_finish_scan_full = time();
-				for _, func in pairs(_callback_after_cache) do
+				for _, func in next, _callback_after_cache do
 					func();
 				end
 				_log_(L["Scan full finished."]);
@@ -964,7 +964,7 @@ do	-- query auction
 				merc.halt_scan_normal();
 				_log_(L["Scan normal finished."]);
 				PlaySound(SOUNDKIT.AUCTION_WINDOW_CLOSE);
-				for _, func in pairs(_callback_after_cache) do
+				for _, func in next, _callback_after_cache do
 					func();
 				end
 			end
@@ -1121,7 +1121,7 @@ do	-- query price
 	end
 	do
 		local num_material_sold_by_vendor = 0;
-		for id, price in pairs(material_sold_by_vendor) do
+		for id, price in next, material_sold_by_vendor do
 			num_material_sold_by_vendor = num_material_sold_by_vendor + 1;
 		end
 		local frame = CreateFrame("Frame");
@@ -1132,7 +1132,7 @@ do	-- query price
 					return;
 				end
 				local n = 0;
-				for _ in pairs(material_sold_by_vendor_by_name) do
+				for _ in next, material_sold_by_vendor_by_name do
 					n = n + 1;
 				end
 				if n >= num_material_sold_by_vendor then
@@ -1144,7 +1144,7 @@ do	-- query price
 		end);
 		local function cache()
 			local n = 0;
-			for id, price in pairs(material_sold_by_vendor) do
+			for id, price in next, material_sold_by_vendor do
 				if cache_item_info(id) then
 					n = n + 1;
 				end
@@ -1327,7 +1327,7 @@ do	-- disenchant db
 		frame:SetScript("OnEvent", function(self, event, arg1, arg2)
 			if arg2 and ITEM[arg1] ~= nil then
 				cache_item_info(arg1);
-				for _, v in pairs(ITEM) do
+				for _, v in next, ITEM do
 					if ITEM == false then
 						return;
 					end
@@ -1338,11 +1338,11 @@ do	-- disenchant db
 				ORIG_DB = nil;
 			end
 		end);
-		for T, VT in pairs(ORIG_DB) do
+		for T, VT in next, ORIG_DB do
 			DB[T] = {  };
-			for R, VR in pairs(VT) do
+			for R, VR in next, VT do
 				DB[T][R] = {  };
-				for _, v in pairs(VR) do
+				for _, v in next, VR do
 					local t = { select(3, unpack(v)) };
 					for i = v[1], v[2] do
 						DB[T][R][i] = t;
@@ -1355,9 +1355,9 @@ do	-- disenchant db
 				return;
 			end
 			local finished = true;
-			for T, VT in pairs(ORIG_DB) do
-				for R, VR in pairs(VT) do
-					for _, v in pairs(VR) do
+			for T, VT in next, ORIG_DB do
+				for R, VR in next, VT do
+					for _, v in next, VR do
 						for i = 3, #v, 3 do
 							local id = v[i];
 							if not ITEM[id] then
@@ -2714,13 +2714,13 @@ do	-- UI
 		wipe(list);
 		local str = ui.searchEdit:GetText();
 		if str and str ~= "" then
-			for id, v in pairs(cache) do
+			for id, v in next, cache do
 				if (merc.query_ah_price_by_id_simple(id) ~= nil or config.showEmpty) and (strfind(v[1], str) or strfind(id, str)) then
 					tinsert(list, id);
 				end
 			end
 		else
-			for id, v in pairs(cache) do
+			for id, v in next, cache do
 				if merc.query_ah_price_by_id_simple(id) ~= nil or config.showEmpty then
 					tinsert(list, id);
 				end
@@ -2794,7 +2794,7 @@ do	-- UI
 		else
 			config.sort_method = method;
 		end
-		for _, button in pairs(self.sortButtons) do
+		for _, button in next, self.sortButtons do
 			if button == self then
 				button.texture:SetColorTexture(0.75, 0.75, 0.25, 0.5);
 				button.seq:Show();
@@ -3304,7 +3304,7 @@ do	-- UI
 		local cbs = {  };
 		local pos_x = 0;
 		local pos_y = 0;
-		for i, val in pairs(ct) do
+		for i, val in next, ct do
 			local key = val[1];
 			local func = val[2];
 			local cb = CreateFrame("CheckButton", nil, configFrame, "OptionsBaseCheckButtonTemplate");
@@ -3356,7 +3356,7 @@ do	-- UI
 			end},
 		};
 		local sls = {  };
-		for i, val in pairs(st) do
+		for i, val in next, st do
 			local label = configFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 			label:SetText(L[val[1]]);
 			label:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 4, -12 - pos_y * 36);
@@ -3388,10 +3388,10 @@ do	-- UI
 		end
 
 		configFrame:SetScript("OnShow", function()
-			for i, val in pairs(ct) do
+			for i, val in next, ct do
 				cbs[i]:SetChecked(config[val[1]]);
 			end
-			for i, val in pairs(st) do
+			for i, val in next, st do
 				sls[i]:SetValue(config[val[1]]);
 			end
 			-- data_valid_time_Slider:SetValue(config.data_valid_time);
@@ -3487,7 +3487,7 @@ local function PLAYER_ENTERING_WORLD()
 			end
 			if alaTradeSV._version < 200109.0 then
 				alaTradeSV.cache3 = {  };
-				for iid, _ in pairs(alaTradeSV.cache) do
+				for iid, _ in next, alaTradeSV.cache do
 					tinsert(alaTradeSV.cache3, iid);
 				end
 			end
@@ -3498,12 +3498,12 @@ local function PLAYER_ENTERING_WORLD()
 		cache2 = alaTradeSV.cache2;
 		cache3 = alaTradeSV.cache3;
 		config = alaTradeSV.config;
-		for k, v in pairs(default) do
+		for k, v in next, default do
 			if config[k] == nil then
 				config[k] = v;
 			end
 		end
-		for k, _ in pairs(config) do
+		for k, _ in next, config do
 			if default[k] == nil then
 				config[k] = nil;
 			end
@@ -3511,7 +3511,7 @@ local function PLAYER_ENTERING_WORLD()
 		alaTradeSV._version = 200109.0;
 	end
 	do	-- 
-		for id, v in pairs(cache) do
+		for id, v in next, cache do
 			local H = v[0];
 			-- { price, count, time, }
 			if H then
@@ -3549,7 +3549,7 @@ local function PLAYER_ENTERING_WORLD()
 	do	-- validate & modify db
 		if config.auto_clean_time > 0 then
 			local expired = time() - config.auto_clean_time;
-			for id, v in pairs(cache) do
+			for id, v in next, cache do
 				local H = v[0];
 				if H then
 					if v[2] then
@@ -3572,7 +3572,7 @@ local function PLAYER_ENTERING_WORLD()
 				end
 			end
 		end
-		for id, v in pairs(cache) do
+		for id, v in next, cache do
 			if v[1] ~= nil and type(v[1]) ~= 'string' then
 				v[1] = nil;
 			end
@@ -3598,7 +3598,7 @@ local function PLAYER_ENTERING_WORLD()
 	merc.hook_tooltip();
 	merc.initUI();
 	merc.init_ADDON_MESSAGE();
-	for id, v in pairs(cache) do
+	for id, v in next, cache do
 		if v[1] == nil or v[1] == "" or v[4] == nil or v[5] == nil or v[6] == nil or v[6] == "" or v[6] == 0 then
 			merc.cache_item_info(id);
 		end

@@ -308,7 +308,7 @@ local function BaudAuctionUpdateProgress(Progress)
 end
 
 local function make_disableBtn()
-	local btn = CreateFrame("Button", "bf_BA_btn", AuctionFrameBrowse, "UIPanelButtonTemplate");
+	local btn = CreateFrame("Button", nil, AuctionFrameBrowse, "UIPanelButtonTemplate");
 	btn:SetPoint("BOTTOM", AuctionFrameBrowse, "BOTTOM", -151 , 14);
 	btn:SetText("关闭拍卖增强");
 	btn:SetHeight(22);
@@ -345,6 +345,14 @@ local EventFuncs = {
 				BaudAuctionProgress.Finish = nil;
 				BaudAuctionProgress:SetAlpha(1);
 				BaudAuctionProgress:Show();
+
+				if AuctionFrameBrowse.selectedCategoryIndex == 11 then
+					AuctionFrameBrowse.selectedCategoryIndex = nil;
+					AuctionFrameBrowse.selectedSubCategoryIndex = nil;
+					AuctionFrameBrowse.selectedSubSubCategoryIndex = nil;
+					AuctionFrameFilters_Update();
+					BrowseWowTokenResults:Hide();
+				end
 			end
 		end);
 		hooksecurefunc("AuctionFrameBrowse_Search", function()
@@ -563,29 +571,82 @@ ScanFrame:SetScript("OnUpdate", function(self)
 	end
 end);
 
-local function BaudAuction_OnLoad(self)
-	for Key, _ in pairs(EventFuncs) do
-		self:RegisterEvent(Key);
+local number_browse_to_display = nil;
+function NS.EnableBaudAuctionFrame(BaudAuctionFrame)
+	AuctionFrameBrowse:UnregisterEvent("AUCTION_ITEM_LIST_UPDATE");
+	AuctionFrameBrowse._RegisterEvent = AuctionFrameBrowse.RegisterEvent;
+	AuctionFrameBrowse.RegisterEvent = function() end;
+
+	BaudAuctionFrame:Show();
+	for Key, _ in next, EventFuncs do
+		BaudAuctionFrame:_RegisterEvent(Key);
 	end
-	self:SetScript("OnEvent", function(self,event, ...)
+	BaudAuctionFrame:SetScript("OnEvent", function(self,event, ...)
 		EventFuncs[event](self,...);
 	end);
 
-	AuctionFrameBrowse:UnregisterEvent("AUCTION_ITEM_LIST_UPDATE");
-
-	local number_browse_to_display = NUM_BROWSE_TO_DISPLAY;
+	number_browse_to_display = NUM_BROWSE_TO_DISPLAY;
 	_G.NUM_BROWSE_TO_DISPLAY = 0;
 
 	for _, Value in ipairs(HideBliz) do
         Value = getglobal(Value);
         if Value then
-            Value:Hide();
-            hooksecurefunc(Value, "Show", function() Value:Hide() end);
+			Value:Hide();
+			Value._Show = Value.Show;
+			Value.Show = function()end;
         end
 	end
 
 	for Index = 1, number_browse_to_display do
 		getglobal("BrowseButton" .. Index):Hide();
+	end
+
+end
+function NS.DisableBaudAuctionFrame(BaudAuctionFrame)
+	AuctionFrameBrowse.RegisterEvent = AuctionFrameBrowse._RegisterEvent;
+	AuctionFrameBrowse._RegisterEvent = nil;
+	AuctionFrameBrowse:RegisterEvent("AUCTION_ITEM_LIST_UPDATE");
+
+	BaudAuctionFrame:Hide();
+	BaudAuctionFrame:UnregisterAllEvents();
+	BaudAuctionFrame:SetScript("OnEvent", nil);
+
+	if number_browse_to_display then
+		_G.NUM_BROWSE_TO_DISPLAY = number_browse_to_display;
+	end
+
+	for _, Value in ipairs(HideBliz) do
+        Value = getglobal(Value);
+        if Value then
+			if Value._Show then
+				Value.Show = Value._Show;
+				Value._Show = nil;
+			end
+			Value:Show();
+        end
+	end
+
+	for Index = 1, number_browse_to_display do
+		getglobal("BrowseButton" .. Index):Hide();
+	end
+	if BrowsePrevPageButton then
+		BrowsePrevPageButton:Hide();
+	end
+	if BrowseNextPageButton then
+		BrowseNextPageButton:Hide();
+	end
+
+end
+
+local function BaudAuction_OnLoad(self, enabled)
+	self._RegisterEvent = self.RegisterEvent;
+	self.RegisterEvent = function() end;
+
+	if enabled then
+		NS.EnableBaudAuctionFrame(self);
+		self:Show();
+	else
+		self:Hide();
 	end
 
 	local Left = 22;
@@ -682,7 +743,7 @@ local function BaudAuction_OnShow()
 end
 
 
-local function hook_Blizzard_AuctionUI()
+function NS.CreateBaudAuctionFrame(enabled)
 	if GetAddOnEnableState(UnitName('player'), "BaudAuction") ~= 0 then
 		return;
 	end
@@ -765,22 +826,12 @@ local function hook_Blizzard_AuctionUI()
 	BaudAuctionArrow = BaudAuctionArrowFrame:CreateTexture(nil, "OVERLAY");
 	BaudAuctionArrow:SetTexture("Interface\\Buttons\\UI-SortArrow");
 	BaudAuctionArrow:SetSize(8, 9);
-	BaudAuction_OnLoad(BaudAuctionFrame);
+	BaudAuction_OnLoad(BaudAuctionFrame, enabled);
 	EventFuncs.ADDON_LOADED(BaudAuctionFrame, "BaudAuction");
+	NS.BaudAuctionFrame = BaudAuctionFrame;
+	NS.BaudAuctionFrameScrollBar = ScrollBar;
+	NS.BaudAuctionProgress = BaudAuctionProgress;
+	NS.BaudAuctionProgressBar = BaudAuctionProgressBar;
+	NS.BaudAuctionCancelButton = BaudAuctionCancelButton;
 end
 
-
-if IsAddOnLoaded("Blizzard_AuctionUI") then
-	C_Timer.After(0.1, hook_Blizzard_AuctionUI);
-else
-	local frame = CreateFrame("FRAME");
-	frame:RegisterEvent("ADDON_LOADED");
-	frame:SetScript("OnEvent", function(self, event, addon)
-		if addon == "Blizzard_AuctionUI" then
-			C_Timer.After(0.1, hook_Blizzard_AuctionUI);
-			frame:UnregisterAllEvents();
-			frame:SetScript("OnEvent", nil);
-			frame = nil;
-		end
-	end);
-end
